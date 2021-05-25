@@ -1,0 +1,88 @@
+#!/usr/bin/env ruby
+
+require 'json'
+require 'spreadsheet_architect'
+require 'pry'
+
+DATA_PATH = File.realpath("#{File.realpath(File.dirname(__FILE__))}/../data/my_finances.json").freeze
+
+ACCOUNT_HEADERS = %w[key name balance]
+
+HEADERS = [
+  'id',
+  'date',
+  'price',
+  'category',
+  'subcategory',
+  'account',
+  'description',
+]
+
+def json2csv(obj)
+  values = []
+
+  HEADERS.each do |header|
+    values << obj[header]
+  end
+
+  values
+end
+
+def jsonAccount2csv(account)
+  values = []
+
+  ACCOUNT_HEADERS.each do |header|
+    values << account[header]
+  end
+
+  values
+end
+
+def write_csv_document(rows, headers: HEADERS, file_name: 'output.csv')
+  File.open(file_name, 'w') do |f|
+    f.write "#{headers.join(',')}\n"
+
+    rows.each do |row|
+      f.write "#{row.join(',')}\n"
+    end
+  end
+end
+
+def write_spreadsheet(xlsx_document, filename = 'my_finances.xlsx')
+  File.open(filename, 'w+b') do |f|
+    f.write xlsx_document.to_stream.read
+  end
+end
+
+puts "Reading JSON..."
+File.open(DATA_PATH) do |f|
+  data = JSON.parse(f.read)
+  accounts = []
+  expenses = []
+
+  data['accounts'].each do |acc|
+    accounts << jsonAccount2csv(acc)
+  end
+
+  data['expenses'].each do |exp|
+    expenses << json2csv(exp)
+  end
+  (0..10).each do |n|
+  end
+
+  ods_spreadsheet = SpreadsheetArchitect.to_axlsx_package({
+    headers: HEADERS,
+    data: expenses,
+    sheet_name: 'expenses',
+  })
+  puts "Expenses document written!"
+
+  ods_spreadsheet = SpreadsheetArchitect.to_axlsx_package({
+    headers: ACCOUNT_HEADERS,
+    data: accounts,
+    sheet_name: 'accounts',
+  }, ods_spreadsheet)
+  puts "Accounts document written!"
+
+  write_spreadsheet(ods_spreadsheet)
+end
